@@ -11,7 +11,7 @@ Shortcuts to the most common kubectl actions.
 * `k.logs pods/my-pod-name -f`: return 20 most recent logs of all containers in a pod and follow the streams
 * `k.no.top`: current near-realtime CPU and RAM usage of nodes in mCPU and memory units (current cpu/mem usage)
 * `k.no.res`: resources allocated (requests and limites) by workloads for each node (node utilization)
-* `k.no.drain -C`: completely drain node (ignoring pods with emptyDir, daemonsets and stray pods: --force --delete-local-data --ignore-daemonsets)
+* `k.no.drain -C my-node-name`: completely drain node (ignoring pods with emptyDir, daemonsets and stray pods: --force --delete-local-data --ignore-daemonsets)
 * `k.ctx other-cluster`: switch to other-cluster context (instead of kubectl use-context)
 * `k.ctx`: see the current context
 * `k get pods`: just like `kubectl get pods`, with `-n current-namespace` is auto-appended
