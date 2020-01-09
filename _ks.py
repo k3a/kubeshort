@@ -212,6 +212,7 @@ def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True)
     register_helper(name+".w", "get "+long_name+" (wide)", ["get", k8s_obj_name, "-o", "wide"], namespaced=namespaced)
     register_helper(name+".desc", "describe "+long_name, ["describe", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".del", "delete "+long_name, ["delete", k8s_obj_name], namespaced=namespaced)
+    register_helper(name+".ed", "edit "+long_name, ["edit", k8s_obj_name], namespaced=namespaced)
 
 def hlp_no_res(p, extra_args):
     out = run_kubectl(["describe", "node"] + extra_args)
