@@ -397,9 +397,9 @@ def hlp_run(p, extra_args):
         args += ["--image", p.image]
     if p.generator:
         args += ["--generator", p.generator]
-    if p.no_rm == None:
+    if not p.no_rm:
         args += ["--rm"]
-    if p.no_it == None:
+    if not p.no_it:
         args += ["-i", "-t"]
 
     exec_kubectl(["run"] + args + extra_args)
@@ -494,13 +494,13 @@ def hlp_scale(p, extra_args):
         else: # name format (expect --replicas in args)
             exec_kubectl(["scale", parts[0]] + args)
 
-h = register_helper("run", "run a new temporary deployment with a TTY attached", func=hlp_run)
 h = register_helper("ev", "get events", ["get", "events", "--sort-by", ".metadata.creationTimestamp"])
+h = register_helper("run", "run a new temporary deployment with a TTY attached", func=hlp_run)
 h.add_argument("--name", help="pod name (default random)")
 h.add_argument("-i", "--image", help="image to pull and run", default="alpine")
 h.add_argument("-g", "--generator", help="generator to use for the deployment", default="run-pod/v1")
-h.add_argument("--no-rm", help="do not remove container upon leaving the shell")
-h.add_argument("--no-it", help="do not add -i -t arguments")
+h.add_argument("--no-rm", default=False, action="store_true", help="do not remove container upon leaving the shell")
+h.add_argument("--no-it", default=False, action="store_true", help="do not add -i -t arguments")
 
 register_common_helpers("po", "pod", "pods")
 h = register_helper("po.names", "get the names of the matching pods", ["get", "pods", "-o", "jsonpath='{.items[*].metadata.name}'"])
@@ -510,7 +510,7 @@ h = register_helper("po.co", "list containers of pod(s)", ["get", "pods"], func=
 
 h = register_helper("po.x", "execute a command in the container (bash by default)", func=hlp_po_x)
 h.add_argument("-c", "--container", help="container to run the shell in (the first one by default)")
-h.add_argument("--no-it", help="do not pass -i -t to the kubectl exec (PTY)")
+h.add_argument("--no-it", default=False, action="store_true", help="do not pass -i -t to the kubectl exec (PTY)")
 
 register_common_helpers("svc", "service", "services")
 register_common_helpers("rs", "replicaset", "replica sets")
