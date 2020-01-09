@@ -503,6 +503,7 @@ h.add_argument("-g", "--generator", help="generator to use for the deployment", 
 h.add_argument("--no-rm", default=False, action="store_true", help="do not remove container upon leaving the shell")
 h.add_argument("--no-it", default=False, action="store_true", help="do not add -i -t arguments")
 
+register_common_helpers("ns", "namespace", "namespaces")
 register_common_helpers("po", "pod", "pods")
 h = register_helper("po.names", "get the names of the matching pods", ["get", "pods", "-o", "jsonpath='{.items[*].metadata.name}'"])
 h = register_helper("po.first", "get the name of the first matching pod", ["get", "pods", "-o", "jsonpath='{.items[0].metadata.name}'"])
