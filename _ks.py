@@ -213,6 +213,8 @@ def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True)
     register_helper(name+".desc", "describe "+long_name, ["describe", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".del", "delete "+long_name, ["delete", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".ed", "edit "+long_name, ["edit", k8s_obj_name], namespaced=namespaced)
+    register_helper(name+".yaml", "get YAML representation of "+long_name, ["get", k8s_obj_name, "-o", "yaml"], namespaced=namespaced)
+    register_helper(name+".json", "get JSON representation of "+long_name, ["get", k8s_obj_name, "-o", "json"], namespaced=namespaced)
 
 def hlp_no_res(p, extra_args):
     out = run_kubectl(["describe", "node"] + extra_args)
@@ -520,12 +522,15 @@ register_common_helpers("rc", "replicationcontroller", "replication controllers"
 register_common_helpers("sts", "statefulset", "stateful sets")
 register_common_helpers("ds", "daemonset", "daemon sets")
 register_common_helpers("cj", "cronjob", "cron jobs")
+register_common_helpers("cm", "configmap", "config maps")
 if ALLOW_SHORT:
     register_common_helpers("j", "job", "jobs")
     register_common_helpers("d", "deployment", "deployments")
+    register_common_helpers("sec", "secret", "secrets")
 else:
     register_common_helpers("job", "job", "jobs")
     register_common_helpers("deploy", "deployment", "deployments")
+    register_common_helpers("secret", "secret", "secrets")
 register_common_helpers("no", "node", "nodes", namespaced=False)
 h = register_helper("no.top", "get table of processes for a node", ["top", "node"], namespaced=False)
 h = register_helper("no.res", "list nodes with resources requested on them", ["describe", "node"], namespaced=False, func=hlp_no_res)
