@@ -343,6 +343,7 @@ def hlp_no_drain(p, extra_args):
 def hlp_logs(p, extra_args):
     args = apply_ns(["logs"], p)
     positionals = []
+    container_specified = False
 
     if p.selector != None:
         args += ["--selector", p.selector]
@@ -350,6 +351,7 @@ def hlp_logs(p, extra_args):
         args += ["--tail", p.tail]
     if p.container != None:
         args += ["--container", p.container]
+        container_specified = True
     if p.follow:
         args += ["--follow"]
         # when follow is requested without --tail, return DEFAULT_TAIL most recent by default
@@ -367,7 +369,8 @@ def hlp_logs(p, extra_args):
 
     # container as the second positional
     if len(positionals) == 2:
-        args += ["-c", positionals[1]]
+        args += ["--container", positionals[1]]
+        container_specified = True
         positionals = positionals[:1]
     
     if len(positionals)>0:
@@ -375,7 +378,7 @@ def hlp_logs(p, extra_args):
         positionals[0] = os.path.basename(positionals[0])
 
         # all containers by default
-        if len(positionals)==1 and p.container is None:
+        if not container_specified and p.container is None:
             args += ["--all-containers"]
     
     args += positionals
