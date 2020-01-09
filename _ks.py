@@ -204,6 +204,15 @@ def register_helper(name, description, base_form=None, namespaced=True, func=Non
 
     return p
 
+def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True):
+    if long_name == None:
+        long_name = k8s_obj_name
+
+    register_helper(name, "get "+long_name, ["get", k8s_obj_name], namespaced=namespaced)
+    register_helper(name+".w", "get "+long_name+" (wide)", ["get", k8s_obj_name, "-o", "wide"], namespaced=namespaced)
+    register_helper(name+".desc", "describe "+long_name, ["describe", k8s_obj_name], namespaced=namespaced)
+    register_helper(name+".del", "delete "+long_name, ["delete", k8s_obj_name], namespaced=namespaced)
+
 def hlp_no_res(p, extra_args):
     out = run_kubectl(["describe", "node"] + extra_args)
     pattern = re.compile(r'(^Name:\s*(.*?)\n)|(^(Allocated resources:.*?)Events)', flags=re.MULTILINE|re.DOTALL)
@@ -483,44 +492,38 @@ def hlp_scale(p, extra_args):
             exec_kubectl(["scale", parts[0]] + args)
 
 h = register_helper("run", "run a new temporary deployment with a TTY attached", func=hlp_run)
+h = register_helper("ev", "get events", ["get", "events", "--sort-by", ".metadata.creationTimestamp"])
 h.add_argument("--name", help="pod name (default random)")
 h.add_argument("-i", "--image", help="image to pull and run", default="alpine")
 h.add_argument("-g", "--generator", help="generator to use for the deployment", default="run-pod/v1")
 h.add_argument("--no-rm", help="do not remove container upon leaving the shell")
 h.add_argument("--no-it", help="do not add -i -t arguments")
 
-h = register_helper("po", "get pods", ["get", "pods"])
-h = register_helper("po.w", "get pods (wide)", ["get", "pods", "-o", "wide"])
+register_common_helpers("po", "pod", "pods")
 h = register_helper("po.names", "get the names of the matching pods", ["get", "pods", "-o", "jsonpath='{.items[*].metadata.name}'"])
 h = register_helper("po.first", "get the name of the first matching pod", ["get", "pods", "-o", "jsonpath='{.items[0].metadata.name}'"])
-h = register_helper("po.desc", "describe pods", ["describe", "pods"])
 h = register_helper("po.top", "get table of processes for a pod", ["top", "pod"])
-h = register_helper("po.del", "delete a pod", ["delete", "pod"])
 h = register_helper("po.co", "list containers of pod(s)", ["get", "pods"], func=hlp_po_co)
 
 h = register_helper("po.x", "execute a command in the container (bash by default)", func=hlp_po_x)
 h.add_argument("-c", "--container", help="container to run the shell in (the first one by default)")
 h.add_argument("--no-it", help="do not pass -i -t to the kubectl exec (PTY)")
 
-h = register_helper("svc", "get services", ["get", "services"])
-h = register_helper("svc.w", "get services (wide)", ["get", "services", "-o", "wide"])
-h = register_helper("rs", "get replica sets", ["get", "replicasets"])
-h = register_helper("rs.del", "delete replica sets", ["delete", "replicaset"])
-h = register_helper("rc", "get replication controllers", ["get", "replicationcontroller"])
-h = register_helper("rc.del", "delete replication controllers", ["delete", "replicationcontroller"])
-h = register_helper("sts", "get statefulsets", ["get", "statefulsets"])
-h = register_helper("sts.del", "delete statefulsets", ["delete", "statefulsets"])
-h = register_helper("ds", "get daemonsets", ["get", "daemonsets"])
-h = register_helper("ds.del", "delete daemonsets", ["delete", "daemonsets"])
-h = register_helper("ev", "get events", ["get", "events", "--sort-by", ".metadata.creationTimestamp"])
-h = register_helper("cj", "get cron jobs", ["get", "cronjobs"])
-h = register_helper("cj.del", "delete cron jobs", ["delete", "cronjob"])
-h = register_helper("no", "get nodes", ["get", "nodes"], namespaced=False)
-h = register_helper("no.w", "get nodes (wide)", ["get", "nodes", "-o", "wide"], namespaced=False)
-h = register_helper("no.top", "get table of processes for a node", ["top", "node"])
+register_common_helpers("svc", "service", "services")
+register_common_helpers("rs", "replicaset", "replica sets")
+register_common_helpers("rc", "replicationcontroller", "replication controllers")
+register_common_helpers("sts", "statefulset", "stateful sets")
+register_common_helpers("ds", "daemonset", "daemon sets")
+register_common_helpers("cj", "cronjob", "cron jobs")
+if ALLOW_SHORT:
+    register_common_helpers("j", "job", "jobs")
+    register_common_helpers("d", "deployment", "deployments")
+else:
+    register_common_helpers("job", "job", "jobs")
+    register_common_helpers("deploy", "deployment", "deployments")
+register_common_helpers("no", "node", "nodes", namespaced=False)
+h = register_helper("no.top", "get table of processes for a node", ["top", "node"], namespaced=False)
 h = register_helper("no.res", "list nodes with resources requested on them", ["describe", "node"], namespaced=False, func=hlp_no_res)
-h = register_helper("no.del", "delete nodes", ["delete", "nodes"])
-h = register_helper("no.desc", "describe nodes", ["describe", "nodes"])
 h = register_helper("no.po", "pods on a node(s)", ["describe", "nodes"], func=hlp_no_po)
 
 h = register_helper("no.drain", "drain node", ["drain"], namespaced=False, func=hlp_no_drain)
@@ -539,13 +542,6 @@ h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument("-u", "--user", help="user to connect via ssh to", default="admin")
 h.add_argument("-s", "--sudo", help="use sudo after logging in", default=True)
-
-if ALLOW_SHORT:
-    h = register_helper("d", "get deployments", ["get", "deployments"])
-    h = register_helper("d.del", "delete deployments", ["delete", "deployment"])
-else:
-    h = register_helper("deploy", "get deployments", ["get", "deployments"])
-    h = register_helper("deploy.del", "delete deployments", ["delete", "deployment"])
 
 h = register_helper("use", "set the working namespace or return the current one", namespaced=False, func=hlp_use)
 h.add_argument("set_ns", help="namespace to switch to", nargs="?")
