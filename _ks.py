@@ -21,6 +21,8 @@ import argparse
 import subprocess
 import re
 import json
+import shutil
+from pipes import quote
 
 # script name (to which symlinks should point to)
 SCRIPT_FILE_NAME = "_ks.py"
@@ -60,8 +62,19 @@ def max_attr_len(obj, subkeys, attrname):
     return nlen
 
 # exec kubectl, replacing the current process
-def exec_kubectl(args):
-    os.execvp("kubectl", ["kubectl"] + args)
+def exec_kubectl(args, pager=False):
+    pager_tool = None
+
+    if pager and sys.stdout.isatty():
+        pager_tool = shutil.which("less")
+        if not pager_tool:
+            pager_tool = shutil.which("more")
+
+    if pager_tool:
+        args = ["kubectl"] + args
+        os.execvp("sh", ["sh", "-c", ' '.join(quote(arg) for arg in args)+"|"+pager_tool])
+    else:
+        os.execvp("kubectl", ["kubectl"] + args)
 
 # run kubectl and return stdout
 def run_kubectl(args):
@@ -347,6 +360,7 @@ def hlp_logs(p, extra_args):
     args = apply_ns(["logs"], p)
     positionals = []
     container_specified = False
+    can_use_pager = True
 
     if p.selector != None:
         args += ["--selector", p.selector]
@@ -357,12 +371,15 @@ def hlp_logs(p, extra_args):
         container_specified = True
     if p.follow:
         args += ["--follow"]
+        can_use_pager = False
         # when follow is requested without --tail, return DEFAULT_TAIL most recent by default
         # to prevent flooding the console with complete log
         if p.tail == None: 
             args += ["--tail", DEFAULT_TAIL]
     if p.previous:
         args += ["--previous"]
+    if p.raw:
+        can_use_pager = False
 
     for a in extra_args:
         if not a.startswith("-"):
@@ -386,7 +403,7 @@ def hlp_logs(p, extra_args):
     
     args += positionals
     
-    exec_kubectl(args)
+    exec_kubectl(args, pager=can_use_pager)
 
 def hlp_run(p, extra_args):
     args = apply_ns([], p)
@@ -560,11 +577,12 @@ h = register_helper("ctx", "switch kubeconfig context or return the current one"
 h.add_argument("set_ctx", help="context name to switch to", nargs="?")
 
 h = register_helper("logs", "get container logs", func=hlp_logs)
-h.add_argument("--tail", help="print this number of lines from the end", nargs="?", const=DEFAULT_TAIL)
-h.add_argument("-f", "--follow", help="stream following lines", action="store_true")
-h.add_argument("-p", "--previous", help="pritn the logs for the previous instance of the container if it exists", action="store_true")
+h.add_argument("--tail", nargs="?", const=DEFAULT_TAIL, help="print this number of lines from the end")
+h.add_argument("-f", "--follow", action="store_true", help="stream following lines")
+h.add_argument("-p", "--previous", action="store_true", help="pritn the logs for the previous instance of the container if it exists")
 h.add_argument("-l", "--selector", help="label selector")
 h.add_argument("-c", "--container", help="container name of a multi-container pod")
+h.add_argument("-r", "--raw", action="store_true", help="do not use pager (less/more), applies to non --follow log output only")
 
 # in addition to "kubectl scale" arguments, it is possible to use short format with name=replicas
 h = register_helper("scale", "scale deployment, replicaset, replication controller or statefulset", ["scale"], func=hlp_scale)
