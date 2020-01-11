@@ -292,7 +292,7 @@ def get_nodes_with_external_host(get_node_args=[]):
 
     return out
 
-def hlp_no_sh(p, extra_args):
+def hlp_no_x(p, extra_args):
     node_args = []
     if p.selector != None:
         node_args += ["-l", p.selector]
@@ -316,7 +316,7 @@ def hlp_no_sh(p, extra_args):
         cmd += [p.command]
 
         subprocess.run(["ssh", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", 
-            p.user+"@"+node_host] + cmd)
+                p.user+"@"+node_host] + cmd)
 
 
 def hlp_no_df(p, extra_args):
@@ -557,12 +557,12 @@ h = register_helper("no.drain", "drain node", ["drain"], namespaced=False, func=
 h.add_argument("-C", "--complete", default=False, action="store_true", 
     help="drain the node completely (implies --force, --delete-local-data and --ignore-daemonsets)")
 
-h = register_helper("no.sh", "run command in remote node(s)", namespaced=False, func=hlp_no_sh)
+h = register_helper("no.x", "execute command in remote node(s)", namespaced=False, func=hlp_no_x)
 h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument("-u", "--user", help="user to connect via ssh to", default="admin")
 h.add_argument("-s", "--sudo", help="use sudo before command", default=True)
-h.add_argument("-c", "--command", default="sh")
+h.add_argument("-x", "--command", "--execute", help="remote command to execute", default="sh")
 
 h = register_helper("no.df", "get node(s) disk usage", ["get", "node"], namespaced=False, func=hlp_no_df)
 h.add_argument("nodes", nargs="*", help="node names")
