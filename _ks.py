@@ -81,8 +81,11 @@ def max_attr_len(obj, subkeys, attrname):
     return nlen
 
 # exec kubectl, replacing the current process
-def exec_kubectl(args, pager=False):
+def exec_kubectl(args, pager=False, pre_cmd=None):
     pager_tool = None
+
+    if pre_cmd == None:
+        pre_cmd = []
 
     if pager and sys.stdout.isatty():
         pager_tool = shutil.which("less")
@@ -90,11 +93,12 @@ def exec_kubectl(args, pager=False):
             pager_tool = shutil.which("more")
 
     if pager_tool:
-        args = ["kubectl"] + args
+        args = pre_cmd + ["kubectl"] + args
         os.execvp("sh", ["sh", "-c", ' '.join(quote(arg)
                                               for arg in args)+"|"+pager_tool])
     else:
-        os.execvp("kubectl", ["kubectl"] + args)
+        pre_cmd.append("kubectl") 
+        os.execvp(pre_cmd[0], pre_cmd + args)
 
 # run kubectl and return stdout
 def run_kubectl(args):
@@ -207,8 +211,8 @@ def apply_ns(args, p=None):
             if a == "-n" or a == "--namespace":
                 has_ns = True
                 break
-        if not has_ns:
-            args += ["-n", get_ns()]
+        #if not has_ns:
+        #    args += ["-n", get_ns()]
 
     return args
 
@@ -221,7 +225,7 @@ def strip_resource_prefix(n):
         return n
 
 
-def default_func_middleware(base_form):
+def default_func_middleware(base_form, pre_cmd=None):
     def f(p, extra_args):
         args = []
         for a in extra_args:
@@ -231,11 +235,11 @@ def default_func_middleware(base_form):
                 args.append(strip_resource_prefix(a))
 
         args = apply_ns(args, p)
-        exec_kubectl(base_form + args)
+        exec_kubectl(base_form + args, pre_cmd=pre_cmd)
     return f
 
 
-def register_helper(name, description, base_form=None, namespaced=True, func=None):
+def register_helper(name, description, base_form=None, pre_cmd=None, namespaced=True, func=None):
     if base_form == None and func == None:
         fail("base_form or func argument must be defined for register_helper()")
 
@@ -247,7 +251,7 @@ def register_helper(name, description, base_form=None, namespaced=True, func=Non
     if func != None:
         p.set_defaults(func=func)
     else:
-        p.set_defaults(func=default_func_middleware(base_form))
+        p.set_defaults(func=default_func_middleware(base_form, pre_cmd=pre_cmd))
 
     if namespaced:
         p.add_argument("-n", "--namespace",
@@ -266,9 +270,11 @@ def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True)
                     ["get", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".w", "get "+long_name+" (wide)",
                     ["get", k8s_obj_name, "-o", "wide"], namespaced=namespaced)
-    register_helper(name+".desc", "describe "+long_name,
+    register_helper(name+".wa", "watch "+long_name,
+                    ["get", k8s_obj_name], pre_cmd=["watch"], namespaced=namespaced)
+    register_helper(name+".de", "describe "+long_name,
                     ["describe", k8s_obj_name], namespaced=namespaced)
-    register_helper(name+".del", "delete "+long_name,
+    register_helper(name+".rm", "delete "+long_name,
                     ["delete", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".ed", "edit "+long_name,
                     ["edit", k8s_obj_name], namespaced=namespaced)
@@ -637,7 +643,7 @@ h = register_helper("no.res", "list nodes with resources requested on them", [
 h = register_helper("no.po", "pods on a node(s)", [
                     "describe", "nodes"], func=hlp_no_po)
 
-h = register_helper("no.drain", "drain node", [
+h = register_helper("no.dr", "drain node", [
                     "drain"], namespaced=False, func=hlp_no_drain)
 h.add_argument("-C", "--complete", default=False, action="store_true",
                help="drain the node completely (implies --force, --delete-local-data and --ignore-daemonsets)")
