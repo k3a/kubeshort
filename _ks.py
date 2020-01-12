@@ -380,7 +380,7 @@ def hlp_no_x(p, extra_args):
 
         cmd += [p.command]
 
-        subprocess.run(["ssh", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off",
+        subprocess.run(["ssh", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
                         p.user+"@"+node_host] + cmd)
 
 
@@ -627,6 +627,9 @@ register_common_helpers("sts", "statefulset", "stateful sets")
 register_common_helpers("ds", "daemonset", "daemon sets")
 register_common_helpers("cj", "cronjob", "cron jobs")
 register_common_helpers("cm", "configmap", "config maps")
+register_common_helpers("pv", "persistentvolume", "persistent volumes")
+register_common_helpers("pvc", "persistentvolumeclaim", "persistent volume claims")
+register_common_helpers("pdb", "poddisruptionbudget", "pod disruption budgets")
 if ALLOW_SHORT:
     register_common_helpers("j", "job", "jobs")
     register_common_helpers("d", "deployment", "deployments")
@@ -691,7 +694,7 @@ h.add_argument("-r", "--raw", action="store_true",
 h = register_helper("scale", "scale deployment, replicaset, replication controller or statefulset", [
                     "scale"], func=hlp_scale)
 
-h = register_helper("apply.f", "apply file",
+h = register_helper("apl.f", "apply file",
                     namespaced=False, func=hlp_apply_f)
 h.add_argument("file_or_url", help="file path or URL to the manifest to apply")
 
@@ -700,7 +703,7 @@ h = register_helper("del.f", "apply kustomization file",
 h.add_argument(
     "file_or_url", help="file path pr URL to kustomization manifest")
 
-h = register_helper("apply.k", "apply kustomization file",
+h = register_helper("apl.k", "apply kustomization file",
                     namespaced=False, func=hlp_apply_k)
 h.add_argument(
     "file_or_url", help="file path pr URL to kustomization manifest")

@@ -16,6 +16,7 @@ Shortcuts to the most common kubectl actions.
 * `k.no.dr -C my-node-name`: completely drain node (ignoring pods with emptyDir, daemonsets and stray pods: --force --delete-local-data --ignore-daemonsets)
 * `k.ctx other-cluster`: switch to other-cluster context (instead of kubectl use-context)
 * `k.ctx`: see the current context
+* `k.apl.f file.yaml`: kubectl apply -f file.yaml
 * `k get pods`: just like `kubectl get pods`, with `-n current-namespace` is auto-appended
 
 See the source code or `./_ks.py -h` output for more shortcuts.
