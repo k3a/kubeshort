@@ -375,13 +375,13 @@ def hlp_no_x(p, extra_args):
             continue
 
         cmd = []
-        if p.sudo:
+        if p.no_sudo != True:
             cmd = ["sudo"]
 
         cmd += [p.command]
 
-        subprocess.run(["ssh", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
-                        p.user+"@"+node_host] + cmd)
+        os.execvpe("ssh", ["ssh", "-t", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
+                        p.user+"@"+node_host] + cmd, env=os.environ)
 
 
 def hlp_no_df(p, extra_args):
@@ -402,7 +402,7 @@ def hlp_no_df(p, extra_args):
             continue
 
         cmd = []
-        if p.sudo:
+        if p.no_sudo != True:
             cmd = ["sudo"]
 
         cmd += ["df", "-h"]
@@ -657,7 +657,7 @@ h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument(
     "-u", "--user", help="user to connect via ssh to", default="admin")
-h.add_argument("-s", "--sudo", help="use sudo before command", default=True)
+h.add_argument("-S", "--no-sudo", help="do not use sudo before command", action="store_true")
 h.add_argument("-x", "--command", "--execute",
                help="remote command to execute", default="sh")
 
@@ -667,7 +667,7 @@ h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument(
     "-u", "--user", help="user to connect via ssh to", default="admin")
-h.add_argument("-s", "--sudo", help="use sudo after logging in", default=True)
+h.add_argument("-S", "--no-sudo", help="do not use sudo before command", action="store_true")
 
 h = register_helper(
     "use", "set the working namespace or return the current one", namespaced=False, func=hlp_use)
