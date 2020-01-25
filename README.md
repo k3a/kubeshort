@@ -7,7 +7,7 @@ Shortcuts to the most common kubectl actions.
 * `k.use kube-system`: switch the current working namespace to the `kube-system` 
 * `k.po` - list pods in the current namespace
 * `k.po -n default` - list pods, overwriting namespace temporarily for the command
-* `k.po.rm pod-name` - delete pod pod-name
+* `k.po.del pod-name` - delete pod pod-name
 * `k.scale mydeployment=2`: scale deployment, replicaset, statefulset or replicationcontroller to 2 replicas
 * `k.logs pods/my-pod-name -f`: return 20 most recent logs of all containers in a pod and follow the streams ("pods/" prefix optional)
 * `k.sec.yaml secret-name`: return YAML representation of secret named secret-name
@@ -20,6 +20,20 @@ Shortcuts to the most common kubectl actions.
 * `k get pods`: just like `kubectl get pods`, with `-n current-namespace` is auto-appended
 
 See the source code or `./_ks.py -h` output for more shortcuts.
+
+## Install
+```sh
+# use your custom bin directory (optional)
+mkdir ~/bin
+export PATH="$HOME/bin/:$PATH"
+
+# move to your bin directory
+chmod +x ./_ks.py
+cp ./_ks.py ~/bin/
+
+# let it create symlinks to itself in your bin directory
+_ks.py install-symlinks -t ~/bin/
+```
 
 ## Contributions
 

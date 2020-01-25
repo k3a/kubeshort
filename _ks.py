@@ -38,7 +38,7 @@ DEFAULT_TAIL = "20"
 KNOWN_K8S_RESOURCES = ["bindings", "componentstatuses", "configmaps", "endpoints", "events", "limitranges", "namespaces", "nodes", "persistentvolumeclaims",
                        "persistentvolumes", "pods", "podtemplates", "replicationcontrollers", "resourcequotas", "secrets", "serviceaccounts", "services",
                        "mutatingwebhookconfigurations", "validatingwebhookconfigurations", "customresourcedefinitions", "apiservices", "controllerrevisions",
-                       "daemonsets", "deployments", "replicasets", "statefulsets", "meshpolicies", "policies", "tokenreviews", "localsubjectaccessreviews",
+                       "daemonsets", "deployments", "deployment.apps", "replicasets", "statefulsets", "meshpolicies", "policies", "tokenreviews", "localsubjectaccessreviews",
                        "selfsubjectaccessreviews", "selfsubjectrulesreviews", "subjectaccessreviews", "horizontalpodautoscalers", "verticalpodautoscalercheckpoints",
                        "verticalpodautoscalers", "cronjobs", "jobs", "certificatesigningrequests", "certificates", "challenges", "clusterissuers", "issuers",
                        "orders", "backendconfigs", "adapters", "attributemanifests", "handlers", "httpapispecbindings", "httpapispecs", "instances",
@@ -53,6 +53,9 @@ KNOWN_K8S_RESOURCES = ["bindings", "componentstatuses", "configmaps", "endpoints
                        "hpa", "vpacheckpoint", "vpa", "cj", "batch", "csr", "cert", "certs", "ds", "deploy", "ing", "netpol", "psp", "rs", "capreq", "mcrt", "dr",
                        "gw", "se",  "vs", "ing", "netpol", "updinf", "pdb", "psp", "pc", "sc"
                        ]
+
+# find and run the best shell
+SHELL_FINDER="sh -c 'if type bash > /dev/null; then exec bash; else exec sh; fi'"
 
 # fail with an error message
 def fail(msg):
@@ -272,9 +275,9 @@ def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True)
                     ["get", k8s_obj_name, "-o", "wide"], namespaced=namespaced)
     register_helper(name+".wa", "watch "+long_name,
                     ["get", k8s_obj_name], pre_cmd=["watch"], namespaced=namespaced)
-    register_helper(name+".de", "describe "+long_name,
+    register_helper(name+".desc", "describe "+long_name,
                     ["describe", k8s_obj_name], namespaced=namespaced)
-    register_helper(name+".rm", "delete "+long_name,
+    register_helper(name+".del", "delete "+long_name,
                     ["delete", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".ed", "edit "+long_name,
                     ["edit", k8s_obj_name], namespaced=namespaced)
@@ -378,7 +381,10 @@ def hlp_no_x(p, extra_args):
         if p.no_sudo != True:
             cmd = ["sudo"]
 
-        cmd += [p.command]
+        if p.command != None and len(p.command) > 0 and p.command != "sh":
+            cmd += [p.command]
+        else:
+            cmd += [SHELL_FINDER]
 
         os.execvpe("ssh", ["ssh", "-t", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
                         p.user+"@"+node_host] + cmd, env=os.environ)
@@ -508,7 +514,7 @@ def hlp_po_x(p, extra_args):
             num_positionals += 1
 
     if num_positionals == 1:
-        exec_kubectl(["exec"] + args + extra_args + ["bash"])
+        exec_kubectl(["exec"] + args + extra_args + ["--", "sh", "-c", SHELL_FINDER])
     else:
         exec_kubectl(["exec"] + args + extra_args)
 
@@ -630,6 +636,7 @@ register_common_helpers("cm", "configmap", "config maps")
 register_common_helpers("pv", "persistentvolume", "persistent volumes")
 register_common_helpers("pvc", "persistentvolumeclaim", "persistent volume claims")
 register_common_helpers("pdb", "poddisruptionbudget", "pod disruption budgets")
+register_common_helpers("hpa", "horizontalpodautoscaler", "horizontal pod autoscalers")
 if ALLOW_SHORT:
     register_common_helpers("j", "job", "jobs")
     register_common_helpers("d", "deployment", "deployments")
@@ -727,6 +734,7 @@ elif len(sys.argv) > 1:
             args.func(args)
         sys.exit(0)
     if sys.argv[1] == "-h" or sys.argv[1] == "--help":
+        cmd_install.print_help()
         for h in symlink_helpers:
             for p in symlink_helpers[h]:
                 print(p.description, end="\n ")
