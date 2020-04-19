@@ -147,6 +147,8 @@ def set_ns(ns: str):
         cur_ns = ns
         f.close()
 
+    print("Switched to namespace \"%s\"." % ns, file=sys.stderr)
+
 
 # list of known helper names (the name after "k.") which will be created
 # as symbolic links and assigned argument-mediating functions
@@ -214,8 +216,8 @@ def apply_ns(args, p=None):
             if a == "-n" or a == "--namespace":
                 has_ns = True
                 break
-        #if not has_ns:
-        #    args += ["-n", get_ns()]
+        if not has_ns:
+            args += ["-n", get_ns()]
 
     return args
 
@@ -312,13 +314,13 @@ def hlp_no_po(p, extra_args):
 def hlp_use(p, extra_args):
     if p.set_ns != None:
         set_ns(p.set_ns)
-        print("Switched to %s namespace." % p.set_ns, file=sys.stderr)
     else:
         print("Current namespace:", get_ns(), file=sys.stderr)
 
 
 def hlp_ctx(p, extra_args):
     if p.set_ctx != None:
+        set_ns("default")
         exec_kubectl(["config", "use-context", p.set_ctx])
     else:
         exec_kubectl(["config", "get-contexts"])
@@ -386,7 +388,11 @@ def hlp_no_x(p, extra_args):
         else:
             cmd += [SHELL_FINDER]
 
-        os.execvpe("ssh", ["ssh", "-t", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
+        if len(nodes) > 1:
+            subprocess.run(["ssh", "-t", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
+                        p.user+"@"+node_host] + cmd)
+        else:
+            os.execvpe("ssh", ["ssh", "-t", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=off", "-o", "LogLevel=error",
                         p.user+"@"+node_host] + cmd, env=os.environ)
 
 
@@ -595,7 +601,7 @@ def hlp_scale(p, extra_args):
 
 
 h = register_helper("ev", "get events", [
-                    "get", "events", "--sort-by", ".metadata.creationTimestamp"])
+                    "get", "events", "--sort-by", ".metadata.creationTimestamp", "-o", "custom-columns=SEEN:.lastTimestamp,SOURCE:.source.component,NAME:.metadata.name,REASON:.reason,MSG:.message"])
 h = register_helper(
     "run", "run a new temporary deployment with a TTY attached", func=hlp_run)
 h.add_argument("--name", help="pod name (default random)")
@@ -612,7 +618,7 @@ register_common_helpers("po", "pod", "pods")
 h = register_helper("po.names", "get the names of the matching pods", [
                     "get", "pods", "-o", "jsonpath='{.items[*].metadata.name}'"])
 h = register_helper("po.first", "get the name of the first matching pod", [
-                    "get", "pods", "-o", "jsonpath='{.items[0].metadata.name}'"])
+                    "get", "pods", "-o", "jsonpath={.items[0].metadata.name}"])
 h = register_helper(
     "po.top", "get table of processes for a pod", ["top", "pod"])
 h = register_helper("po.co", "list containers of pod(s)",
