@@ -443,6 +443,7 @@ def hlp_logs(p, extra_args):
 
     if p.selector != None:
         args += ["--selector", p.selector]
+        args += ["--tail", "100"]
     if p.tail != None:
         args += ["--tail", p.tail]
     if p.container != None:
@@ -708,11 +709,11 @@ h = register_helper("scale", "scale deployment, replicaset, replication controll
                     "scale"], func=hlp_scale)
 
 h = register_helper("apl.f", "apply file",
-                    namespaced=False, func=hlp_apply_f)
+                    namespaced=True, func=hlp_apply_f)
 h.add_argument("file_or_url", help="file path or URL to the manifest to apply")
 
 h = register_helper("del.f", "apply kustomization file",
-                    namespaced=False, func=hlp_del_f)
+                    namespaced=True, func=hlp_del_f)
 h.add_argument(
     "file_or_url", help="file path pr URL to kustomization manifest")
 

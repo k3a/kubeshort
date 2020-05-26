@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+
+import argparse
+import subprocess
+import signal
+import sys
+import os
+import atexit
+import time
+import socket
+
+def sigint_handler(signal, frame):
+  #print("Interrupted")
+  sys.exit(0)
+
+def kill_child():
+    if portfw_pid is None:
+        pass
+    else:
+        os.kill(portfw_pid, signal.SIGTERM)
+
+def check_port(port):
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.settimeout(3)
+
+  try:
+    s.connect(("127.0.0.1", port))
+    return True
+  except ConnectionRefusedError:
+    return False
+
+def setup_port_forwarding():
+  global portfw_pid
+
+  proc = subprocess.Popen(["kubectl","port-forward", "svc/loki", "-n", "monitoring", "3100:3100"])
+  portfw_pid = proc.pid
+
+  while not check_port(3100):
+    time.sleep(1)
+
+  print("Port fowarding ready", file=sys.stderr)
+
+# set signal and exit handlers
+signal.signal(signal.SIGINT, sigint_handler)
+atexit.register(kill_child)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("query", nargs="?", default="{app!=\"promtail\"}", help="promQL query")
+parser.add_argument("--since", default="5m", help="Lookback window.")
+parser.add_argument("--limit", default="30", help="Limit on number of entries to print.")
+parser.add_argument("--no-tail", "-T", default=False, help="Do not wait for more lines (tail the log)")
+args, extra_args = parser.parse_known_args()
+
+setup_port_forwarding()
+
+# decide labels to print
+include_labels = ["app_kubernetes_io_name", "app"]
+if 'namespace="' not in args.query:
+  include_labels.append("namespace")
+else:
+  include_labels.append("instance")
+  #include_labels.append("container_name")
+
+# construct options
+opts = ["--limit="+args.limit, "--since="+args.since]
+for label in include_labels:
+  opts.append("--include-label="+label)
+
+if not args.no_tail:
+  opts.append("--tail")
+
+# call teh query
+subprocess.run(["logcli", "query"] + opts + [*extra_args, args.query])
