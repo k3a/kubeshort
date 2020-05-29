@@ -58,7 +58,8 @@ include_labels = ["app_kubernetes_io_name", "app"]
 if 'namespace="' not in args.query:
   include_labels.append("namespace")
 else:
-  include_labels.append("instance")
+  #include_labels.append("instance")
+  include_labels.append("pod")
   #include_labels.append("container_name")
 
 # construct options
