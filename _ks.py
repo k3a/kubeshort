@@ -34,6 +34,8 @@ HELPER_PREFIX = "k."
 ALLOW_SHORT = True
 # default number of log lines to return (must be string variable)
 DEFAULT_TAIL = "20"
+# default user for SSH login
+DEFAULT_USER = "ubuntu"
 # known k8s resources (to strip "resource/"NAME prefix)
 KNOWN_K8S_RESOURCES = ["bindings", "componentstatuses", "configmaps", "endpoints", "events", "limitranges", "namespaces", "nodes", "persistentvolumeclaims",
                        "persistentvolumes", "pods", "podtemplates", "replicationcontrollers", "resourcequotas", "secrets", "serviceaccounts", "services",
@@ -670,7 +672,7 @@ h = register_helper("no.x", "execute command in remote node(s)",
 h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument(
-    "-u", "--user", help="user to connect via ssh to", default="admin")
+    "-u", "--user", help="user to connect via ssh to", default=DEFAULT_USER)
 h.add_argument("-S", "--no-sudo", help="do not use sudo before command", action="store_true")
 h.add_argument("-x", "--command", "--execute",
                help="remote command to execute", default="sh")
@@ -680,7 +682,7 @@ h = register_helper("no.df", "get node(s) disk usage", [
 h.add_argument("nodes", nargs="*", help="node names")
 h.add_argument("-l", "--selector", help="node label selector")
 h.add_argument(
-    "-u", "--user", help="user to connect via ssh to", default="admin")
+    "-u", "--user", help="user to connect via ssh to", default=DEFAULT_USER)
 h.add_argument("-S", "--no-sudo", help="do not use sudo before command", action="store_true")
 
 h = register_helper(
