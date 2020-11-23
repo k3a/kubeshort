@@ -47,14 +47,14 @@ atexit.register(kill_child)
 parser = argparse.ArgumentParser()
 parser.add_argument("query", nargs="?", default="{app!=\"promtail\"}", help="promQL query")
 parser.add_argument("--since", default="5m", help="Lookback window.")
-parser.add_argument("--limit", default="30", help="Limit on number of entries to print.")
-parser.add_argument("--no-tail", "-T", default=False, help="Do not wait for more lines (tail the log)")
+parser.add_argument("--limit", "--count", default="30", help="Limit on number of entries to print.")
+parser.add_argument("--no-tail", "-T", action='store_true', help="Do not wait for more lines (tail the log)")
 args, extra_args = parser.parse_known_args()
 
 setup_port_forwarding()
 
 # decide labels to print
-include_labels = ["app_kubernetes_io_name", "app"]
+include_labels = ["hostname", "comm", "unit", "app_kubernetes_io_name", "app"]
 if 'namespace="' not in args.query:
   include_labels.append("namespace")
 else:
