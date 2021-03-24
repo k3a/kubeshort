@@ -8,6 +8,10 @@ import os
 import atexit
 import time
 import socket
+import random
+
+random.seed()
+port = random.randint(30000, 31767)
 
 def sigint_handler(signal, frame):
   #print("Interrupted")
@@ -32,10 +36,10 @@ def check_port(port):
 def setup_port_forwarding():
   global portfw_pid
 
-  proc = subprocess.Popen(["kubectl","port-forward", "svc/loki", "-n", "monitoring", "3100:3100"])
+  proc = subprocess.Popen(["kubectl","port-forward", "svc/loki", "-n", "monitoring", str(port)+":3100"])
   portfw_pid = proc.pid
 
-  while not check_port(3100):
+  while not check_port(port):
     time.sleep(1)
 
   print("Port fowarding ready", file=sys.stderr)
@@ -63,7 +67,7 @@ else:
   #include_labels.append("container_name")
 
 # construct options
-opts = ["--limit="+args.limit, "--since="+args.since]
+opts = ["--addr=http://localhost:"+str(port), "--limit="+args.limit, "--since="+args.since]
 for label in include_labels:
   opts.append("--include-label="+label)
 
