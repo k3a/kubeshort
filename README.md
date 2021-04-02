@@ -8,11 +8,14 @@ Shortcuts to the most common kubectl actions.
 * `k.po` - list pods in the current namespace
 * `k.po -n default` - list pods, overwriting namespace temporarily for the command
 * `k.po.del pod-name` - delete pod pod-name
+* `k.po.y pod-name` - show filtered, less cluttered [kubectl-neat-like](https://github.com/itaysk/kubectl-neat) yaml representation (or original yaml with -f/--full option) 
+* `k.po.x pod-name uptime` - execute "uptime" command in the container, returning stdout or attach to a shell if no command is specified
 * `k.scale mydeployment=2`: scale deployment, replicaset, statefulset or replicationcontroller to 2 replicas
 * `k.logs pods/my-pod-name -f`: return 20 most recent logs of all containers in a pod and follow the streams ("pods/" prefix optional)
-* `k.sec.yaml secret-name`: return YAML representation of secret named secret-name
+* `k.sec.y secret-name`: return YAML representation of secret named secret-name
 * `k.no.top`: current near-realtime CPU and RAM usage of nodes in mCPU and memory units (current cpu/mem usage)
 * `k.no.res`: resources allocated (requests and limites) by workloads for each node (node utilization)
+* `k.no.x node-name`: SSH into the node using public node IP and `KUBESHORT_DEFAULT_USER` user
 * `k.no.dr -C my-node-name`: completely drain node (ignoring pods with emptyDir, daemonsets and stray pods: --force --delete-local-data --ignore-daemonsets)
 * `k.ctx other-cluster`: switch to other-cluster context (instead of kubectl use-context)
 * `k.ctx`: see the current context
@@ -34,6 +37,21 @@ cp ./_ks.py ~/bin/
 # let it create symlinks to itself in your bin directory
 _ks.py install-symlinks -t ~/bin/
 ```
+
+## Configuration
+
+You can customize these environmental variables:
+
+- `KUBESHORT_CUR_NS_PATH`: path to store the current, working namespace name (default /tmp/.k8s-cur-ns)
+- `KUBESHORT_ALLOW_SHORT`: whether to create also shorter versions of common resources (e.g. "cj" for "cronjob", default "1")
+- `KUBESHORT_DEFAULT_TAIL`: number of log lines to return (default 20)
+- `KUBESHORT_DEFAULT_USER`: default user when SSH'ing into a node (default ubuntu)
+
+## Extras
+
+### k.logcli
+
+A wrapper around [logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to automatically create and teardown port-forwarding and fetch common log labels.
 
 ## Contributions
 

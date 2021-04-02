@@ -21,21 +21,22 @@ import argparse
 import subprocess
 import re
 import json
+import yaml
 import shutil
 from pipes import quote
 
 # script name (to which symlinks should point to)
 SCRIPT_FILE_NAME = "_ks.py"
 # where to store the current namespace
-CUR_NS_PATH = "/tmp/.k8s-cur-ns"
+CUR_NS_PATH = os.environ.get("KUBESHORT_CUR_NS_PATH", "/tmp/.k8s-cur-ns")
 # prefix for all helpers (and thus also for the creaed symlinks)
 HELPER_PREFIX = "k."
 # allow even shorter object names (e.g. "cj" for "cronjob") which are not officialy accepted by kubectl get <shortname>
-ALLOW_SHORT = True
+ALLOW_SHORT = os.environ.get("KUBESHORT_ALLOW_SHORT", "1") not in ["0", "false", "off"]
 # default number of log lines to return (must be string variable)
-DEFAULT_TAIL = "20"
+DEFAULT_TAIL = os.environ.get("KUBESHORT_DEFAULT_TAIL", "20")
 # default user for SSH login
-DEFAULT_USER = "ubuntu"
+DEFAULT_USER = os.environ.get("KUBESHORT_DEFAULT_USER", "ubuntu")
 # known k8s resources (to strip "resource/"NAME prefix)
 KNOWN_K8S_RESOURCES = ["bindings", "componentstatuses", "configmaps", "endpoints", "events", "limitranges", "namespaces", "nodes", "persistentvolumeclaims",
                        "persistentvolumes", "pods", "podtemplates", "replicationcontrollers", "resourcequotas", "secrets", "serviceaccounts", "services",
@@ -55,6 +56,12 @@ KNOWN_K8S_RESOURCES = ["bindings", "componentstatuses", "configmaps", "endpoints
                        "hpa", "vpacheckpoint", "vpa", "cj", "batch", "csr", "cert", "certs", "ds", "deploy", "ing", "netpol", "psp", "rs", "capreq", "mcrt", "dr",
                        "gw", "se",  "vs", "ing", "netpol", "updinf", "pdb", "psp", "pc", "sc"
                        ]
+FILTER_ATTRIBUTES = ["annotations.kubectl.kubernetes.io/restartedAt", "metadata.generateName", "metadata.ownerReferences.uid",
+                    "metadata.uid", "metadata.resourceVersion", "metadata.selfLink", "metadata.managedFields", "metadata.creationTimestamp",
+                    "metadata.annotations.kubectl.kubernetes.io/last-applied-configuration",
+                    "spec.containers.imagePullPolicy", "spec.containers.ports.protocol", "spec.containers.terminationMessagePath", "spec.containers.terminationMessagePolicy",
+                    "spec.containers.restartPolicy", "spec.containers.terminationGracePeriodSeconds",
+                    "status.conditions", "status.containerStatuses.lastState"]
 
 # find and run the best shell
 SHELL_FINDER="sh -c 'if type bash > /dev/null; then exec bash; else exec sh; fi'"
@@ -285,11 +292,50 @@ def register_common_helpers(name, k8s_obj_name, long_name=None, namespaced=True)
                     ["delete", k8s_obj_name], namespaced=namespaced)
     register_helper(name+".ed", "edit "+long_name,
                     ["edit", k8s_obj_name], namespaced=namespaced)
-    register_helper(name+".yaml", "get YAML representation of "+long_name,
-                    ["get", k8s_obj_name, "-o", "yaml"], namespaced=namespaced)
-    register_helper(name+".json", "get JSON representation of "+long_name,
+    h = register_helper(name+".y", "get YAML representation of "+long_name,
+                    namespaced=namespaced, func=hlp_yaml_middleware(["get", k8s_obj_name, "-o", "yaml"]))
+    h.add_argument("-f", "--full", help="display full representation (without filtering less useful fields)", 
+                    default=False, action="store_true")
+    register_helper(name+".j", "get JSON representation of "+long_name,
                     ["get", k8s_obj_name, "-o", "json"], namespaced=namespaced)
 
+def dict_with_filtered_attributes(d: dict, filter_spec: list, cur_path=[]):
+    new_dict = {}
+    for key in d.keys():
+        val = d[key]
+        key_path = cur_path+[key]
+        if ".".join(key_path) not in filter_spec:
+            if isinstance(val, dict):
+                new_dict[key] = dict_with_filtered_attributes(val, filter_spec, cur_path=key_path)
+            elif isinstance(val, list):
+                arr = []
+                new_dict[key] = arr
+                for v in val:
+                    if isinstance(v, dict):
+                        arr.append(dict_with_filtered_attributes(v, filter_spec, cur_path=key_path))
+                    else:
+                        arr.append(v)
+            else:
+                new_dict[key] = val
+    return new_dict
+
+def hlp_yaml_middleware(base_form: list):
+    def f(p, extra_args):
+        args = []
+        for a in extra_args:
+            if a.startswith("-"):
+                args.append(a)
+            else:
+                args.append(strip_resource_prefix(a))
+
+        args = apply_ns(base_form + args, p)
+        if p.full:
+            exec_kubectl(args)
+        else:
+            y = yaml.safe_load(run_kubectl(args))
+            y = dict_with_filtered_attributes(y, FILTER_ATTRIBUTES)
+            print(yaml.dump(y), end='')
+    return f
 
 def hlp_no_res(p, extra_args):
     out = run_kubectl(["describe", "node"] + extra_args)
