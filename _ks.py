@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # KubeShort - shortcuts to the most common kubectl actions
 #
@@ -23,7 +23,7 @@ import re
 import json
 import yaml
 import shutil
-from pipes import quote
+from shlex import quote
 
 # script name (to which symlinks should point to)
 SCRIPT_FILE_NAME = "_ks.py"
